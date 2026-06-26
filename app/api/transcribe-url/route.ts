@@ -28,7 +28,22 @@ function isSupported(url: string): boolean {
   }
 }
 
-function extractTitle(url: string): string {
+async function fetchUploader(ytDlpPath: string, url: string): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync(ytDlpPath, [
+      "--skip-download",
+      "--print", "uploader",
+      "--no-warnings",
+      "--no-playlist",
+      url,
+    ]);
+    return stdout.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function fallbackTitle(url: string): string {
   try {
     const parsed = new URL(url);
     const hostname = parsed.hostname.replace("www.", "");
@@ -102,7 +117,10 @@ export async function POST(req: NextRequest) {
       args.push("--ffmpeg-location", path.dirname(ffmpegPath));
     }
 
-    await execFileAsync(ytDlpPath, args);
+    const [, uploader] = await Promise.all([
+      execFileAsync(ytDlpPath, args),
+      fetchUploader(ytDlpPath, url),
+    ]);
 
     if (!fs.existsSync(tmpAudio)) {
       return NextResponse.json(
@@ -114,7 +132,7 @@ export async function POST(req: NextRequest) {
     const { result } = await transcribeWithChunking(tmpAudio);
 
     const id = uuidv4();
-    const title = extractTitle(url);
+    const title = uploader ? `Video by ${uploader}` : fallbackTitle(url);
     const timestampsText = buildTimestampedText(result.segments);
 
     const transcript = {
