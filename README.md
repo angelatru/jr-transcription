@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# transcribe
 
-## Getting Started
+Accurate audio & video transcription via Groq's Whisper large-v3-turbo. Supports audio file uploads and YouTube / Instagram / TikTok links. Transcripts saved in local SQLite.
 
-First, run the development server:
+## Setup
+
+### 1. Get a free Groq API key
+
+Sign up at [console.groq.com](https://console.groq.com) → API Keys → Create key. Free tier gives ~2 hrs/day.
+
+### 2. Configure environment
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.example .env.local
+# edit .env.local and paste your key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Install yt-dlp (required for video URL support)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+brew install yt-dlp   # macOS
+# or: pip install yt-dlp
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Run
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Audio files**: mp3, wav, m4a, flac, ogg — drag & drop or click to upload
+- **Video files**: mp4, mov, mkv, webm — auto-converts to audio
+- **Video URLs**: YouTube, Instagram, TikTok — paste and transcribe
+- **Auto-detects language** — 50+ languages via Whisper
+- **Chunking** — files up to 1 hour auto-split at 10-minute boundaries
+- **Two output modes** — plain text or text with timestamps (`[00:01:23]`)
+- **Export** — copy to clipboard or download as `.txt`
+- **History** — all transcripts saved in local SQLite, persists across sessions
 
-## Deploy on Vercel
+## Deploy to Railway
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Push to GitHub
+2. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
+3. Add environment variable: `GROQ_API_KEY`
+4. Add a **Volume** mounted at `/app/data` so the SQLite database persists across deploys
+5. Deploy — `railway.toml` handles yt-dlp installation automatically
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Limits
+
+- Groq free tier: ~2 hours/day, rate limited
+- Files over 25MB are chunked automatically (ffmpeg is bundled)
+- Video URL downloads require `yt-dlp` installed on your system

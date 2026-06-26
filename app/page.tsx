@@ -1,65 +1,243 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import TranscribeInput, { TranscriptData } from "@/components/TranscribeInput";
+import TranscriptResult from "@/components/TranscriptResult";
+import History from "@/components/History";
 
 export default function Home() {
+  const [current, setCurrent] = useState<TranscriptData | null>(null);
+  const [history, setHistory] = useState<TranscriptData[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  async function fetchHistory() {
+    try {
+      const res = await fetch("/api/history");
+      const data = await res.json();
+      if (Array.isArray(data)) setHistory(data);
+    } catch {
+      // silently fail
+    }
+  }
+
+  function handleNewTranscript(t: TranscriptData) {
+    setCurrent(t);
+    setHistory((prev) => [t, ...prev.filter((h) => h.id !== t.id)]);
+  }
+
+  async function handleDelete(id: string) {
+    await fetch(`/api/history/${id}`, { method: "DELETE" });
+    setHistory((prev) => prev.filter((h) => h.id !== id));
+    if (current?.id === id) setCurrent(null);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{
+      minHeight: "100dvh",
+      background: "var(--bg)",
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      {/* Header */}
+      <header style={{
+        borderBottom: "1px solid var(--border)",
+        padding: "0 32px",
+        height: "52px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        position: "sticky",
+        top: 0,
+        background: "var(--bg)",
+        zIndex: 10,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <WaveformLogo />
+          <span style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: "16px",
+            letterSpacing: "-0.01em",
+            color: "var(--text)",
+          }}>
+            transcribe
+          </span>
+          <span style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            color: "var(--accent)",
+            background: "var(--accent-dim)",
+            border: "1px solid rgba(163,230,53,0.2)",
+            padding: "2px 6px",
+            borderRadius: "3px",
+            letterSpacing: "0.06em",
+          }}>
+            whisper
+          </span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <button
+          onClick={() => setHistoryOpen((v) => !v)}
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "11px",
+            letterSpacing: "0.06em",
+            padding: "6px 12px",
+            background: historyOpen ? "var(--surface-2)" : "none",
+            border: `1px solid ${historyOpen ? "var(--border)" : "transparent"}`,
+            borderRadius: "4px",
+            color: history.length ? "var(--text-muted)" : "var(--text-dim)",
+            cursor: "pointer",
+            transition: "all 0.12s",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <HistoryIcon />
+          History
+          {history.length > 0 && (
+            <span style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              padding: "0 5px",
+              borderRadius: "3px",
+              fontSize: "10px",
+            }}>
+              {history.length}
+            </span>
+          )}
+        </button>
+      </header>
+
+      {/* Main layout */}
+      <div style={{
+        flex: 1,
+        display: "flex",
+        maxWidth: "1100px",
+        width: "100%",
+        margin: "0 auto",
+        padding: "40px 32px",
+        gap: "40px",
+        alignItems: "flex-start",
+      }}>
+        {/* Left column */}
+        <main style={{
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: "28px",
+        }}>
+          {/* Hero */}
+          <div style={{ marginBottom: "8px" }}>
+            <h1 style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 800,
+              fontSize: "clamp(28px, 4vw, 40px)",
+              letterSpacing: "-0.03em",
+              lineHeight: 1.1,
+              color: "var(--text)",
+              marginBottom: "10px",
+            }}>
+              Audio and Content Transcription<br />
+              <span style={{ color: "var(--accent)" }}>for julian :3</span>
+            </h1>
+            <p style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "14px",
+              color: "var(--text-muted)",
+              fontWeight: 300,
+              lineHeight: 1.6,
+            }}>
+              Upload any audio or video file, or paste a YouTube / Instagram / TikTok link.
+              Auto-detects language. Up to 1 hour.
+            </p>
+          </div>
+
+          <TranscribeInput onTranscript={handleNewTranscript} />
+
+          {current && <TranscriptResult transcript={current} />}
+        </main>
+
+        {/* Right sidebar — history */}
+        {historyOpen && history.length > 0 && (
+          <aside
+            className="animate-fade-up"
+            style={{
+              width: "260px",
+              flexShrink: 0,
+              position: "sticky",
+              top: "80px",
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <History
+              items={history}
+              onSelect={(t) => { setCurrent(t); }}
+              onDelete={handleDelete}
+              selectedId={current?.id}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+          </aside>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer style={{
+        borderTop: "1px solid var(--border)",
+        padding: "16px 32px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}>
+        <span style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "10px",
+          color: "var(--text-dim)",
+          letterSpacing: "0.06em",
+        }}>
+          GROQ · WHISPER LARGE-V3-TURBO
+        </span>
+        <span style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "10px",
+          color: "var(--text-dim)",
+        }}>
+          50+ languages · auto-detect
+        </span>
+      </footer>
     </div>
+  );
+}
+
+function WaveformLogo() {
+  const bars = [3, 6, 9, 12, 8, 5, 10, 14, 7, 4];
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "1.5px", height: "18px" }}>
+      {bars.map((h, i) => (
+        <div
+          key={i}
+          style={{
+            width: "2px",
+            height: `${h}px`,
+            background: "var(--accent)",
+            borderRadius: "1px",
+            opacity: 0.7 + (i % 3) * 0.1,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function HistoryIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
   );
 }
