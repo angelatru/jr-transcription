@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     make \
     g++ \
     curl \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
 
 # Install yt-dlp standalone binary (no Python runtime needed)
