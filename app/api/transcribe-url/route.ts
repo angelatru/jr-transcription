@@ -28,11 +28,11 @@ function isSupported(url: string): boolean {
   }
 }
 
-async function fetchUploader(ytDlpPath: string, url: string): Promise<string | null> {
+async function fetchVideoTitle(ytDlpPath: string, url: string): Promise<string | null> {
   try {
     const { stdout } = await execFileAsync(ytDlpPath, [
       "--skip-download",
-      "--print", "uploader",
+      "--print", "title",
       "--no-warnings",
       "--no-playlist",
       url,
@@ -117,9 +117,9 @@ export async function POST(req: NextRequest) {
       args.push("--ffmpeg-location", path.dirname(ffmpegPath));
     }
 
-    const [, uploader] = await Promise.all([
+    const [, videoTitle] = await Promise.all([
       execFileAsync(ytDlpPath, args),
-      fetchUploader(ytDlpPath, url),
+      fetchVideoTitle(ytDlpPath, url),
     ]);
 
     if (!fs.existsSync(tmpAudio)) {
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     const { result } = await transcribeWithChunking(tmpAudio);
 
     const id = uuidv4();
-    const title = uploader ? `Video by ${uploader}` : fallbackTitle(url);
+    const title = videoTitle ?? fallbackTitle(url);
     const timestampsText = buildTimestampedText(result.segments);
 
     const transcript = {

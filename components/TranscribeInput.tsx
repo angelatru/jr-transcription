@@ -220,19 +220,17 @@ export default function TranscribeInput({ onTranscript }: Props) {
               fontWeight: 500,
               cursor: isLoading || !url.trim() ? "default" : "pointer",
               transition: "all 0.15s ease",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
             }}
           >
             {isLoading ? (
-              <>
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                 <SpinnerIcon />
-                <span>{progress || "Processing…"}</span>
-              </>
+                {progress || "Processing…"}
+              </span>
             ) : "Transcribe"}
           </button>
+
+          {isLoading && <ProgressBar progress={progress} />}
         </div>
       )}
 
@@ -256,7 +254,7 @@ export default function TranscribeInput({ onTranscript }: Props) {
 
 function LoadingState({ progress }: { progress: string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", width: "100%" }}>
       <SpinnerIcon size={20} />
       <p style={{
         fontFamily: "var(--font-mono)",
@@ -267,6 +265,30 @@ function LoadingState({ progress }: { progress: string }) {
         {progress || "Processing…"}
         <span className="animate-blink"> _</span>
       </p>
+      <ProgressBar progress={progress} />
+    </div>
+  );
+}
+
+function ProgressBar({ progress }: { progress: string }) {
+  const isTranscribing = progress.toLowerCase().includes("transcrib");
+  const pct = !progress ? 10 : isTranscribing ? 82 : 30;
+
+  return (
+    <div style={{
+      width: "100%",
+      height: "2px",
+      background: "var(--border)",
+      borderRadius: "1px",
+      overflow: "hidden",
+    }}>
+      <div style={{
+        height: "100%",
+        width: `${pct}%`,
+        background: "var(--accent)",
+        borderRadius: "1px",
+        transition: isTranscribing ? "width 25s ease-out" : "width 0.6s ease",
+      }} />
     </div>
   );
 }
